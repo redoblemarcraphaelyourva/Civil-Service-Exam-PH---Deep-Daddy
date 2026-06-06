@@ -1,0 +1,6 @@
+{
+  "name": "Civil Service Exam Reviewer 2026",
+  "description": "An interactive, web-based exam reviewer for the Philippine Civil Service Examination with AI-powered detailed explanations for wrong answers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

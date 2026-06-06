@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default safety net: reject all by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Admins helper collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+    }
+
+    // Global Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Allow mock account queries if authenticated or simple owner check
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'redoblemarcraphael.yourva@gmail.com'
+      );
+    }
+
+    // Validate User Profile document
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role', 'createdAt'])
+        && data.keys().size() == 5
+        && data.uid is string && data.uid.size() <= 64
+        && data.email is string && data.email.size() <= 100
+        && data.displayName is string && data.displayName.size() <= 100
+        && data.role is string && (data.role == 'student' || data.role == 'admin')
+        && (data.createdAt is string || data.createdAt is timestamp);
+    }
+
+    // User Profile Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isOwner(userId) && isValidUser(incoming()) && incoming().role == 'student';
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(incoming()) && (
+        // Allow updating only displayName or email
+        (isOwner(userId) && incoming().role == existing().role && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email'])) ||
+        (isAdmin() && incoming().createdAt == existing().createdAt)
+      );
+      allow delete: if isAdmin();
+
+      // Exam Attempt Rules
+      match /attempts/{attemptId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidAttempt(incoming());
+        // Exam attempts are immutable
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
+
+    // Validate Attempt Schema
+    function isValidAttempt(data) {
+      return data.keys().hasAll(['attemptId', 'userId', 'level', 'score', 'total', 'percentage', 'elapsedSeconds', 'isPracticeMode', 'category', 'submittedAt'])
+        && data.keys().size() == 10
+        && data.attemptId is string && data.attemptId.size() <= 64
+        && data.userId is string && data.userId.size() <= 64
+        && data.level is string && data.level.size() <= 50
+        && data.score is int && data.score >= 0 && data.score <= 180
+        && data.total is int && data.total >= 0 && data.total <= 180
+        && data.percentage is int && data.percentage >= 0 && data.percentage <= 100
+        && data.elapsedSeconds is int && data.elapsedSeconds >= 0
+        && data.isPracticeMode is bool
+        && data.category is string && data.category.size() <= 100
+        && (data.submittedAt is string || data.submittedAt is timestamp);
+    }
+  }
+}

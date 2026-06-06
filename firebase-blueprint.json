@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Examinee or Admin user registration profile detail",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique auth identifier of the student"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Student email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Student readable full/first name"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["student", "admin"],
+          "description": "Access control tier"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server generated timestamp representing registration"
+        }
+      },
+      "required": ["uid", "email", "displayName", "role", "createdAt"]
+    },
+    "Attempt": {
+      "title": "Exam Attempt Record",
+      "description": "Historic ledger entry for a completed practice session or 180-item simulated mock exam",
+      "type": "object",
+      "properties": {
+        "attemptId": {
+          "type": "string",
+          "description": "Unique identifier of the study session"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Accredited examinee identifier"
+        },
+        "level": {
+          "type": "string",
+          "description": "Exam level chosen"
+        },
+        "score": {
+          "type": "integer",
+          "description": "Number of correct choices bubbled"
+        },
+        "total": {
+          "type": "integer",
+          "description": "Total items in test pool"
+        },
+        "percentage": {
+          "type": "integer",
+          "description": "Accuracy percentage metric"
+        },
+        "elapsedSeconds": {
+          "type": "integer",
+          "description": "Total time spent on the exam in seconds"
+        },
+        "isPracticeMode": {
+          "type": "boolean",
+          "description": "Whether the session was a self-paced study block"
+        },
+        "category": {
+          "type": "string",
+          "description": "Optionally specific subject category reviewed"
+        },
+        "submittedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["attemptId", "userId", "level", "score", "total", "percentage", "elapsedSeconds", "isPracticeMode", "category", "submittedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual profiles for students or administrative monitors"
+    },
+    "/users/{userId}/attempts/{attemptId}": {
+      "schema": "Attempt",
+      "description": "Diagnostic session ledger records representing examinee answers"
+    }
+  }
+}
